@@ -1,6 +1,7 @@
 import sys
 import re
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # 1. Use this to scrape a resource from a list of given URLs
 # 2. In Burp start a new scan and them as "URLs to Scan"
@@ -14,7 +15,14 @@ def scrape(urls):
     for url in urls:
         results = set()
         print("Scarping %s..." % url)
-        content = requests.get(url).content
+        try:
+            content = requests.get(url, verify=False, timeout=3).content
+        except KeyboardInterrupt:
+            sys.exit(0)
+        except:
+            print("Failed on %s: %s" % (url, sys.exc_info()[1]))
+            continue
+
         matches = re.findall(RESOURCES_PATTERN, content.decode("utf-8"))
 
         for match in matches:
@@ -54,4 +62,5 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         urls = [line.strip().rstrip("/") for line in f.readlines()]
 
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
     scrape(urls)
