@@ -41,7 +41,7 @@ def scrape(url, queue):
         print("Failed on %s: %s" % (url, sys.exc_info()[1]))
         return
 
-    matches = re.findall(RESOURCES_PATTERN, content.decode("utf-8"))
+    matches = re.findall(RESOURCES_PATTERN, content.decode("utf-8", "replace"))
 
     for match in matches:
         for group in match:
@@ -51,7 +51,7 @@ def scrape(url, queue):
     results = [result for result in results if "." in result.split("/")[-1]]
     results = [get_full_url(url, result) for result in results]
 
-    print("Found %s resources on %s." % (len(results), url))
+    print("Found %s resources on %s" % (len(results), url))
 
     for result in results:
         queue.put(result)
