@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 # 3. Selectively disable other extensions adding active scanner checks and run a "Audit checks - extensions only" scan.
 
 RESOURCES_PATTERN = r'(?:(?:href|src)=(?:["\']([^\'"]*)[\'"]|([^\s<>]+)))' # @d0nutptr
+EXT_BLACKLIST = [r'html?', r'as.x?', r'php\d?']
 
 RESULTS_FILE = "results.txt"
 PROCESSES_COUNT = 4
@@ -52,7 +53,7 @@ def scrape(url, queue):
             results.add(group)
 
     results = [result for result in results if is_same_origin(url, result) or is_relative(result)]
-    results = [result for result in results if "." in result.split("/")[-1]]
+    results = [result for result in results if ("." in result.split("/")[-1] and not is_blacklisted(result.split("/")[-1].split(".")[-1]))]
     results = [get_full_url(url, result) for result in results]
 
     print("Found %s resources on %s" % (len(results), url))
@@ -78,6 +79,9 @@ def is_same_origin(origin, url):
 
 def is_relative(url):
     return url.startswith("/") and not (url.startswith("//") or url.startswith("/\\"))
+
+def is_blacklisted(extension):
+    return any(re.match(ep, extension) for ep in EXT_BLACKLIST)
 
 def get_full_url(origin, url):
     if url.startswith(origin):
@@ -105,7 +109,7 @@ if __name__ == "__main__":
     resources = wjob.get()
     p.close()
 
-    with open(RESULTS_FILE, "w") as f:
+    with open(RESULTS_FILE, "w", encoding="utf-8") as f:
         for resource in resources:
             f.write("%s\n" % resource)
     

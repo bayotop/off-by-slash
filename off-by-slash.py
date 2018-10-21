@@ -2,6 +2,8 @@ from burp import IBurpExtender, IScannerCheck, IScanIssue
 from java.io import PrintWriter
 from java.net import URL
 
+import re
+
 # https://i.blackhat.com/us-18/Wed-August-8/us-18-Orange-Tsai-Breaking-Parser-Logic-Take-Your-Path-Normalization-Off-And-Pop-0days-Out-2.pdf
 
 # Attempts to detect path traversal caused via a common NGINX misconfiguration.
@@ -29,6 +31,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         self._stdout = PrintWriter(callbacks.getStdout(), True)
         self._callbacks.registerScannerCheck(self)
 
+        self.extensionBlacklist = [r'html?', r'as.x?', r'php\d?']
         self.enableDirectoryGuessing = True
         with open("directories.txt", "r") as f:
             self.common_directories = [x.strip() for x in f.readlines()]
@@ -77,8 +80,13 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         return requestInfo.getMethod() == "GET"
 
     def isStaticResource(self, requestResponse):
-        # This is naive and will result in a lot of requests. Need to adjust.
-        return "." in self._helpers.analyzeRequest(requestResponse).getUrl().getPath().split("/")[-1]
+        # This likely needs adjustment. 
+        lastPart = self._helpers.analyzeRequest(requestResponse).getUrl().getPath().split("/")[-1]
+        if "." in lastPart:
+            extension = lastPart.split(".")[-1]
+            return not any(re.match(ep, extension) for ep in self.extensionBlacklist)
+
+        return False
 
     def detectAliasTraversal(self, requestResponse):
         originalUrl = self._helpers.analyzeRequest(requestResponse).getUrl()
