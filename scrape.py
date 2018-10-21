@@ -4,6 +4,7 @@ import re
 import requests
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
+from urllib.parse import urlparse
 
 # 1. Use this to scrape a resource from a list of given URLs
 # 2. In Burp start a new scan and them as "URLs to Scan"
@@ -34,9 +35,12 @@ def scrape(url, queue):
     disable_warnings(InsecureRequestWarning)
     results = set()
 
-    print("Scarping %s..." % url)
+    print("Scraping %s ..." % url)
     try:
-        content = requests.get(url, verify=False, timeout=3).content
+        response = requests.get(url, verify=False, timeout=3)
+        if response.history:
+            url = "{uri.scheme}://{uri.netloc}".format(uri=urlparse(response.url))
+        content = response.content
     except:
         print("Failed on %s: %s" % (url, sys.exc_info()[1]))
         return
@@ -54,22 +58,21 @@ def scrape(url, queue):
     print("Found %s resources on %s" % (len(results), url))
 
     for result in results:
-        queue.put(result)
+        queue.put(result.replace(" ", "%20"))
 
 def writer(queue):
-    f = open(RESULTS_FILE, 'w') 
+    results = set()
     while True:
         try:
             entry = queue.get()
+            if entry == DONE_FLAG:
+                return results
+
+            results.add(entry)
         except:
             # KeyboardInterrupt
             break
-        if entry == DONE_FLAG:
-            break
-        f.write(str(entry) + '\n')
-        f.flush()
-    f.close()
-
+        
 def is_same_origin(origin, url):
     return url.startswith(origin + "/") or url.startswith("//%s/" % origin.split("/")[2])
 
@@ -95,8 +98,16 @@ if __name__ == "__main__":
     results = multiprocessing.Manager().Queue()   
     p = multiprocessing.Pool(4)
     
-    p.apply_async(writer, (results,))
+    wjob = p.apply_async(writer, (results,))
     initiate(p, results, urls)
 
     results.put(DONE_FLAG)
+    resources = wjob.get()
     p.close()
+
+    with open(RESULTS_FILE, "w") as f:
+        for resource in resources:
+            f.write("%s\n" % resource)
+    
+
+    
