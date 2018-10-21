@@ -33,7 +33,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         with open("directories.txt", "r") as f:
             self.common_directories = [x.strip() for x in f.readlines()]
             
-        self._stdout.println("GitHub: https://gist.github.com/bayotop/ae64c4909b05e04fe5b0ab410f0885a1")
+        self._stdout.println("GitHub: https://github.com/bayotop/off-by-slash/")
         self._stdout.println("Contact: https://twitter.com/_bayotop")
         self._stdout.println("")
         self._stdout.println("Successfully initialized!")
@@ -51,11 +51,13 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if not self._helpers.analyzeResponse(baseRequestResponse.getResponse()).getStatusCode() == 200:
             return None
 
-        url = self._helpers.analyzeRequest(baseRequestResponse).getUrl()
+        # Prevent testing same paths repeadetly
+        url = self._helpers.analyzeRequest(baseRequestResponse).getUrl().toString()
+        url = url[:url.rindex("/")]
 
         if url in self.scanned_urls:
             return None
-           
+        
         self.scanned_urls.add(url)
         vulnerable, verifyingRequestResponse = self.detectAliasTraversal(baseRequestResponse)
 
