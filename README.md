@@ -6,7 +6,7 @@ Burp extension to detect alias traversal via NGINX misconfiguration at scale. Re
 1. git clone https://github.com/bayotop/off-by-slash/
 2. Burp -> Extender -> Add -> find and select `off-by-slash.py`
 
-The extension implements an active scanner check. Simply run a new scan, preferably with an "Audit checks - extensions only" configuration, on static resources identified via Burp's crawler. Alternatively, use `scrape.py` with a list of URLs to scrape static resources from. The results can be directly passed to a new Burp scan.
+The extension implements an active scanner check. Simply run a new scan, preferably with an "Audit checks - extensions only" configuration, on static resources identified via Burp's crawler. Alternatively, use `scrape.py` with a list of URLs to scrape static resources from. The results can be directly passed to a new Burp scan (Burp 2.0).
 
 ## Description
 
