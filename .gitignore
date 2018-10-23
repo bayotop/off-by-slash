@@ -103,5 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# VSCode
+.vscode/settings.json
+
 results.txt
 domains.txt

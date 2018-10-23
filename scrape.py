@@ -2,8 +2,7 @@ import multiprocessing
 import sys
 import re
 import requests
-from urllib3 import disable_warnings
-from urllib3.exceptions import InsecureRequestWarning
+import urllib3
 from urllib.parse import urlparse
 
 # 1. Use this to scrape a resource from a list of given URLs
@@ -28,12 +27,14 @@ def initiate(pool, results, urls):
             job.get()
     except KeyboardInterrupt:
         print("Killed.")
-        pool.terminate()
-        pool.close()
-        sys.exit(0)
+        try:
+            pool.terminate()
+            pool.close()
+        finally:
+            sys.exit(0)
 
 def scrape(url, queue):
-    disable_warnings(InsecureRequestWarning)
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     results = set()
 
     print("Scraping %s ..." % url)
@@ -73,7 +74,7 @@ def writer(queue):
         except:
             # KeyboardInterrupt
             break
-        
+
 def is_same_origin(origin, url):
     return url.startswith(origin + "/") or url.startswith("//%s/" % origin.split("/")[2])
 
@@ -99,9 +100,9 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         urls = [line.strip().rstrip("/") for line in f.readlines()]
 
-    results = multiprocessing.Manager().Queue()   
+    results = multiprocessing.Manager().Queue()
     p = multiprocessing.Pool(4)
-    
+
     wjob = p.apply_async(writer, (results,))
     initiate(p, results, urls)
 
@@ -112,6 +113,3 @@ if __name__ == "__main__":
     with open(RESULTS_FILE, "w", encoding="utf-8") as f:
         for resource in resources:
             f.write("%s\n" % resource)
-    
-
-    
