@@ -1,6 +1,8 @@
 # off-by-slash
 Burp extension to detect alias traversal via NGINX misconfiguration at scale. Requires Burp Professional.
 
+![Issue](issue.png?raw=true "off-by-slash in Burp 2.0")
+
 ## Usage
 
 1. git clone https://github.com/bayotop/off-by-slash/

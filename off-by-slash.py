@@ -158,8 +158,15 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         name = "Path traversal via misconfigured NGINX alias"
         severity = "High"
         confidence = "Firm"
-# https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md
         detail = '''
+Found path traversal at:<br/>
+<ul>
+<li>Original url: %s</li>
+<li>Verification url: %s</li>
+</ul>        
+''' % (self._helpers.analyzeRequest(baseRequestResponse).getUrl(), self._helpers.analyzeRequest(verifyingRequestResponse).getUrl())
+# https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md
+        background = '''
 The alias directive is used to replace path of the specified location. For example, with the following configuration:<br/><br/>
 
 <pre>location /i/ { 
@@ -181,14 +188,15 @@ In other words, the incorrect configuration of alias could allow an attacker to 
         return ScanIssue(baseRequestResponse.getHttpService(),
                          self._helpers.analyzeRequest(baseRequestResponse).getUrl(),
                          [baseRequestResponse, verifyingRequestResponse],
-                         name, detail, confidence, severity, remediation)
+                         name, detail, background, confidence, severity, remediation)
 
 class ScanIssue(IScanIssue):
-    def __init__(self, httpService, url, httpMessages, name, detail, confidence, severity, remediation):
+    def __init__(self, httpService, url, httpMessages, name, detail, background, confidence, severity, remediation):
         self.HttpService = httpService
         self.Url = url
         self.HttpMessages = httpMessages
         self.Name = name
+        self.Background = background
         self.Detail = detail
         self.Severity = severity
         self.Confidence = confidence
@@ -211,7 +219,7 @@ class ScanIssue(IScanIssue):
         return self.Confidence
 
     def getIssueBackground(self):
-        return None
+        return self.Background
 
     def getRemediationBackground(self):
         return self.Remediation
