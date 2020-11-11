@@ -9,12 +9,13 @@ from urllib.parse import urlparse
 # 2. In Burp start a new scan and them as "URLs to Scan"
 # 3. Selectively disable other extensions adding active scanner checks and run a "Audit checks - extensions only" scan.
 
-RESOURCES_PATTERN = r'(?:(?:href|src)=(?:["\']([^\'"]*)[\'"]|([^\s<>]+)))' # @d0nutptr
-EXT_BLACKLIST = [r'html?', r'as.x?', r'php\d?']
+RESOURCES_PATTERN = r'(?:(?:href|src)=(?:["\']([^\'"]*)[\'"]|([^\s<>]+)))'  # @d0nutptr
+EXCLUDED_EXTENSIONS = [r"html?", r"as.x?", r"php\d?"]
 
 RESULTS_FILE = "results.txt"
 PROCESSES_COUNT = 4
 DONE_FLAG = "__done__"
+
 
 def initiate(pool, results, urls):
     jobs = []
@@ -32,6 +33,7 @@ def initiate(pool, results, urls):
             pool.close()
         finally:
             sys.exit(0)
+
 
 def scrape(url, queue):
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -54,13 +56,18 @@ def scrape(url, queue):
             results.add(group)
 
     results = [result for result in results if is_same_origin(url, result) or is_relative(result)]
-    results = [result for result in results if ("." in result.split("/")[-1] and not is_blacklisted(result.split("/")[-1].split(".")[-1]))]
+    results = [
+        result
+        for result in results
+        if ("." in result.split("/")[-1] and not is_excluded(result.split("/")[-1].split(".")[-1]))
+    ]
     results = [get_full_url(url, result) for result in results]
 
     print("Found %s resources on %s" % (len(results), url))
 
     for result in results:
         queue.put(result.replace(" ", "%20"))
+
 
 def writer(queue):
     results = set()
@@ -75,14 +82,18 @@ def writer(queue):
             # KeyboardInterrupt
             break
 
+
 def is_same_origin(origin, url):
     return url.startswith(origin + "/") or url.startswith("//%s/" % origin.split("/")[2])
+
 
 def is_relative(url):
     return url.startswith("/") and not (url.startswith("//") or url.startswith("/\\"))
 
-def is_blacklisted(extension):
-    return any(re.match(ep, extension) for ep in EXT_BLACKLIST)
+
+def is_excluded(extension):
+    return any(re.match(ep, extension) for ep in EXCLUDED_EXTENSIONS)
+
 
 def get_full_url(origin, url):
     if url.startswith(origin):
@@ -91,6 +102,7 @@ def get_full_url(origin, url):
         return origin.split("/")[0] + url
     if url.startswith("/"):
         return origin + url
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
