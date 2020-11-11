@@ -101,11 +101,11 @@ class BurpExtender(IBurpExtender, IScannerCheck):
             if "." in part:
                 continue
 
-            # Checks if /part../ results in 403
+            # Checks if /part../ returns the same as /
             if not self.quickCheck(url, part, requestResponse):
                 continue
 
-            self._stdout.println("Potentially vulnerable: %s" % url)
+            self._stdout.println("Potentially vulnerable: %s (folder /%s/)" % (url, part))
             
             replacement = "/%s../%s/" % (part, part)
             urls.append(URL(url.toString().replace("/%s/" % part, replacement)))
@@ -116,11 +116,14 @@ class BurpExtender(IBurpExtender, IScannerCheck):
     
     def quickCheck(self, url, part, requestResponse):
         replacement = "/%s../" % part
-        url = url.toString().replace("/%s/" % part, replacement)
-        url = URL(url[:url.index("../") + 3])
+        probe = url.toString().replace("/%s/" % part, replacement) # https://host/some/part/other -> https://host/some/part../other/
+        probe = URL(probe[:probe.index("../") + 3]) # https://host/some/part../other/ -> https://host/some/part../
+        verifier = URL(probe.toString().replace(replacement, "") + "/")  # https://host/some/part../ -> https://host/some/
 
-        check = self._callbacks.makeHttpRequest(requestResponse.getHttpService(), self._helpers.buildHttpRequest(url))
-        return self._helpers.analyzeResponse(check.getResponse()).getStatusCode() == 403
+        expected = self._callbacks.makeHttpRequest(requestResponse.getHttpService(), self._helpers.buildHttpRequest(verifier))
+        actual = self._callbacks.makeHttpRequest(requestResponse.getHttpService(), self._helpers.buildHttpRequest(probe))
+
+        return self.compareResponses(expected.getResponse(), actual.getResponse())
 
     def guessDirectories(self, url, part):
         urls = []
@@ -133,14 +136,14 @@ class BurpExtender(IBurpExtender, IScannerCheck):
 
     def compareResponses(self, oResponse, vResponse):
         vResponseInfo = self._helpers.analyzeResponse(vResponse)
+        oResponseInfo = self._helpers.analyzeResponse(oResponse)
 
-        if vResponseInfo.getStatusCode() != 200:
+        if vResponseInfo.getStatusCode() != oResponseInfo.getStatusCode():
             return False
 
         vBodyOffset = vResponseInfo.getBodyOffset()
         vBody = vResponse.tostring()[vBodyOffset:]
 
-        oResponseInfo = self._helpers.analyzeResponse(oResponse)
         oBodyOffset = oResponseInfo.getBodyOffset()
         oBody = oResponse.tostring()[oBodyOffset:]
 
