@@ -14,7 +14,7 @@ The extension implements an active scanner check. Simply run a new scan, prefera
 
 *https://i.blackhat.com/us-18/Wed-August-8/us-18-Orange-Tsai-Breaking-Parser-Logic-Take-Your-Path-Normalization-Off-And-Pop-0days-Out-2.pdf*
 
-A server is assumed to be vulnerable if a request to an existing path like `https://example.com/static../` returns 403. To eliminate false positives the misconfiguration has to be confirmed by successfully requesting an existing resource via path traversal. This is done as follows:
+A server is assumed to be vulnerable if a request to an existing path like `https://example.com/static../` returns the same response as `https://example.com/`. To eliminate false positives the misconfiguration has to be confirmed by successfully requesting an existing resource via path traversal. This is done as follows:
 
 For the URL https://example.com/folder1/folder2/static/main.css it generates the following links:
 
