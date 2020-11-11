@@ -37,7 +37,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         self._stdout.println("GitHub: https://github.com/bayotop/off-by-slash/")
         self._stdout.println("Contact: https://twitter.com/_bayotop")
         self._stdout.println("")
-        self._stdout.println("Successfully initialized!")
+        self._stdout.println("Successfully initialized (v1.1)!")
 
     def doActiveScan(self, baseRequestResponse, insertionPoint):
         scan_issues = []
