@@ -101,7 +101,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         parts = filter(None, path.split("/"))
 
         for part in parts:
-            if "." in part:
+            if "." in part and part[0] != ".":
                 continue
 
             # Checks if /part../ returns the same as /
